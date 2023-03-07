@@ -3,7 +3,9 @@
 namespace AFSDev\RayLogChannel;
 
 use Monolog\Handler\AbstractProcessingHandler;
+use Monolog\Level;
 use Monolog\Logger;
+use Monolog\LogRecord;
 use Spatie\Ray\Ray;
 use Spatie\Ray\Settings\SettingsFactory;
 
@@ -27,7 +29,7 @@ class RayLoggingHandler extends AbstractProcessingHandler
         parent::__construct($level, $bubble);
     }
 
-    protected function write(array $record): void
+    protected function write(LogRecord $record): void
     {
         if (class_exists('Spatie\Ray\Ray')) {
             $rayClass = Ray::class;
@@ -35,25 +37,25 @@ class RayLoggingHandler extends AbstractProcessingHandler
             $ray = new $rayClass(SettingsFactory::createFromConfigFile());
             $payload = new \AFSDev\RayLogChannel\Ray\LogPayload($record);
 
-            if (empty($record['context'])) {
-                $ray->raw($record['message']);
+            if (empty($record->context)) {
+                $ray->raw($record->message);
             } else {
-                $ray->raw($record['message'], $record['context']);
+                $ray->raw($record->message, $record->context);
             }
 
-            if ($color = $this->getColor($record['level_name'])) {
+            if ($color = $this->getColor($record->level)) {
                 $ray->color($color);
             }
         }
     }
 
-    protected function getColor($levelName)
+    protected function getColor(Level $level)
     {
         $colors = $this->config['colors'] ?? $this->defaultColors;
 
         $color = null;
         foreach ($colors as $c => $levels) {
-            if (in_array($levelName, $levels)) {
+            if (in_array($level->getName(), $levels)) {
                 $color = $c;
                 break;
             }
